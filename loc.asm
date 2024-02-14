@@ -38,9 +38,21 @@ _start:
 	mov r14, rcx
 	xor rax, rax
 	mov ax, WORD [rcx+16]
-	add rcx, rax
+	add rcx, rax ; rcx = next dirent, DO NOT USE THIS LOOP!
 
-	call print_test
+	lea rax, [r14+19]
+	call strlen
+	mov r11, rax
+
+	push rcx
+	mov rax, 1 ; WRITE
+	mov rdi, 1 ; STDOUT
+	lea rsi, [r14+19]
+	mov rdx, r11
+	syscall
+	pop rcx
+
+	call newline
 
 	cmp rcx, r15
 	jl .inner_loop
@@ -59,13 +71,14 @@ strlen:
 	dec rbx
 .loop:
 	inc rbx
-	mov rcx, [rax+rbx]
-	test rcx, rcx
+	mov cl, BYTE [rax+rbx]
+	test cl, cl
 	jnz .loop
+
 .loop_exit:
 	mov rax, rbx
-	pop rbx
 	pop rcx
+	pop rbx
 	ret
 
 
@@ -109,6 +122,26 @@ print_test:
 	pop rax
 	ret
 
+newline:
+	push rax
+	push rdi
+	push rsi
+	push rdx
+	push rcx
+	push r11
+	mov rax, 1 ; WRITE
+	mov rdi, 1 ; STDOUT
+	mov rsi, STR_NEWLINE
+	mov rdx, 1
+	syscall
+	pop r11
+	pop rcx
+	pop rdx
+	pop rsi
+	pop rdi
+	pop rax
+	ret
+
 exit_fail:
 	mov rax, 60
 	mov rdi, 1
@@ -128,9 +161,11 @@ exit_success:
 section .bss
 
 section .data
-STR_DOT: db ".", 0
 
-STR_TEST: db "TEST", 10
+STR_DOT: db ".", 0
+STR_NEWLINE: db 10
+
+STR_TEST: db "TEST", 10, 0
 STR_TEST_LEN: equ $-STR_TEST
 
 STR_PROG_COMPLETE: db "PROGRAM COMPLETE", 10
