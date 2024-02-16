@@ -18,6 +18,8 @@ _start:
 
 	sub rsp, 64
 	mov QWORD [rsp+0], rax
+	xor rax, rax
+	mov QWORD [rsp+8], rax
 
 .outer_loop:
 	mov rax, 217 ; getdent64
@@ -96,24 +98,47 @@ _start:
 	jl .count_loc_loop
 .count_loc_loop_exit:
 
-	; sub rsp, 21
-	; mov [rsp+20], 10
-	; ; div
-
-	; add rsp, 21
+	mov r12, [rsp+8]
+	add r12, rcx
+	mov [rsp+8], r12
 
 	; call newline
 
 .inner_loop_end:
 	xor rax, rax
 	mov ax, WORD [r14+16]
-	add r14, rax ; rcx = next dirent, DO NOT USE THIS LOOP!
+	add r14, rax
 	cmp r14, r15
 	jl .inner_loop
 
 	jmp .outer_loop
 
 .exit_outer_loop:
+
+	mov rax, QWORD [rsp+8]
+	mov r12, rsp
+
+	sub rsp, 21
+	lea rcx, [rsp+20]
+	mov [rcx], BYTE 10
+	mov r11, 10
+.digitize_loop:
+	dec rcx
+	xor rdx, rdx
+	div r11
+	lea rdx, [rdx+0x30]
+	mov [rcx], BYTE dl
+	test rax, rax
+	jnz .digitize_loop
+
+	sub r12, rcx
+	mov rax, 1 ; WRITE
+	mov rdi, 1 ; STDOUT
+	mov rsi, rcx
+	mov rdx, r12
+	syscall
+
+	add rsp, 21
 
 	jmp exit_success
 
